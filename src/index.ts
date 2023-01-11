@@ -17,7 +17,7 @@ class Size {
 
 }
 
-// const play = "34T6PkyryNpF2zLSvsqqY1iMjJCf86m6cnXXqv8bDaeZsZ9T6EZS1ficE4Q456iJSoboNuVV6skoSrYmFSV2erXr3DBaj6SDg7ptXPb616MAoHhRnEkZudLrT"
+const sound_track = "https://www.beepbox.co/#9n31s0k0l00e03t2ma7g0fj07r1i0o432T1v1uc0f10l7q011d23A4F3B5Q0506Pd474E361963279T0v1u58f0q0x10ob1d03w5h1E1b7T1v1u3df0qwx10p511d08AcFbBfQ269cP969bE2bi7iT4v1uf0f0q011z6666ji8k8k3jSBKSJJAArriiiiii07JCABrzrrrrrrr00YrkqHrsrrrrjr005zrAqzrjzrrqr1jRjrqGGrrzsrsA099ijrABJJJIAzrrtirqrqjqixzsrAjrqjiqaqqysttAJqjikikrizrHtBJJAzArzrIsRCITKSS099ijrAJS____Qg99habbCAYrDzh00E0b4h400000000h4g000000014h000000004h400000000p1WBWqfibSqfVgzjhWhvgnVBpp60BWqfijtfMs600aqcMnQ5Z17ghQ4t5B960"
 // @ts-ignore
 const pickup_count = window.sfxr.generate("pickupCoin");
 // @ts-ignore
@@ -154,8 +154,10 @@ class FadeRect {
             let r = this.fade_count/10
             ctx.fillStyle = `rgb(${255},${r*255},${r*255})`
             this.fade_count--
-            if(this.fade_count < 0)
+            if(this.fade_count < 0) {
                 this.fading = false
+                this.fade_count = 10
+            }
         } else {
             ctx.fillStyle = 'rgb(50,50,50)'
         }
