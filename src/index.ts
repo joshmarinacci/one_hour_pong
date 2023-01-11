@@ -111,18 +111,59 @@ class Ball {
 class Paddle {
     bounds: Bounds;
     color: string;
+    private fading: boolean;
+    private fade_count:number
     constructor() {
         this.color = 'magenta'
         this.bounds = new Bounds(200,200,20,100)
+        this.fading = false
+        this.fade_count = 10
     }
     draw(ctx: CanvasRenderingContext2D) {
         ctx.fillStyle = this.color
+        if(this.fading){
+            let r = this.fade_count/10
+            ctx.fillStyle = `rgb(${255},${r*255},${r*255})`
+            this.fade_count--
+            if(this.fade_count < 0)
+                this.fading = false
+        }
         ctx.fillRect(this.bounds.x,this.bounds.y,this.bounds.w,this.bounds.h)
+    }
+
+    fade() {
+        this.fading = true
     }
 }
 
 function rand(min: number, max: number) {
     return min + Math.random()*(max-min)
+}
+
+class FadeRect {
+    bounds: Bounds;
+    private fading: boolean;
+    private fade_count: number;
+    constructor(bounds: Bounds) {
+        this.bounds = bounds
+        this.fading = false
+        this.fade_count = 10
+    }
+    draw(ctx: CanvasRenderingContext2D) {
+        if(this.fading){
+            let r = this.fade_count/10
+            ctx.fillStyle = `rgb(${255},${r*255},${r*255})`
+            this.fade_count--
+            if(this.fade_count < 0)
+                this.fading = false
+        } else {
+            ctx.fillStyle = 'rgb(50,50,50)'
+        }
+        ctx.fillRect(this.bounds.x,this.bounds.y,this.bounds.w,this.bounds.h)
+    }
+    fade() {
+        this.fading = true
+    }
 }
 
 class GameState {
@@ -131,18 +172,25 @@ class GameState {
     ball: Ball;
     player_score: number;
     computer_score:number
+    top_border: FadeRect;
+    bot_border: FadeRect;
+    playing: boolean;
     constructor() {
+        this.playing = false
         this.player_score = 0
         this.computer_score = 0
         this.reset()
+        this.top_border = new FadeRect(new Bounds(0,0,canvas.width,20))
+        this.bot_border = new FadeRect(new Bounds(0,canvas.height-20,canvas.width,20))
+
     }
 
     reset() {
         this.player = new Paddle()
-        this.player.color = 'blue'
+        this.player.color = 'gray'
         this.player.bounds.set(100,50,20,80)
         this.computer = new Paddle()
-        this.computer.color = 'green'
+        this.computer.color = 'lightgray'
         this.computer.bounds.set(500,50,20,80)
         this.ball = new Ball()
         let speed = 5
@@ -152,14 +200,26 @@ class GameState {
 
     draw(ctx: CanvasRenderingContext2D) {
         // console.log('drawing',ctx)
+        this.top_border.draw(ctx)
+        this.bot_border.draw(ctx)
         this.player.draw(ctx)
         this.computer.draw(ctx)
         this.ball.draw(ctx)
 
-        ctx.fillStyle = 'black'
-        ctx.font = '26pt sans-serif'
-        ctx.fillText(""+this.player_score,100,30)
-        ctx.fillText(""+this.computer_score,500,30)
+        ctx.fillStyle = 'rgb(100,100,100)'
+        ctx.font = '42pt sans-serif'
+        ctx.fillText(""+this.player_score,50,130)
+        ctx.fillText(""+this.computer_score,550,130)
+
+        if(!this.playing) {
+            ctx.fillStyle = 'rgb(100,100,100)'
+            ctx.font = '42pt sans-serif'
+            ctx.fillText('click to start',180,100)
+        }
+    }
+
+    start() {
+        this.playing = true
     }
 }
 
@@ -171,6 +231,9 @@ function init_game() {
     })
     canvas.addEventListener('keyup',(e) => {
         keystate.set(e.code,false)
+    })
+    canvas.addEventListener('click',() => {
+        state.start()
     })
     canvas.focus()
     state.reset()
@@ -186,7 +249,7 @@ function log(...args) {
 }
 
 function draw_screen(ctx: CanvasRenderingContext2D) {
-    ctx.fillStyle = 'white'
+    ctx.fillStyle = 'black'
     ctx.fillRect(0,0,canvas.width,canvas.height)
     state.draw(ctx)
 }
@@ -214,9 +277,10 @@ function check_collisions() {
     if(new_bounds.left() <= state.player.bounds.right() && new_bounds.right() > state.player.bounds.left()) {
         if(new_bounds.bottom() > state.player.bounds.top() &&
         new_bounds.top() < state.player.bounds.bottom()) {
-            state.ball.velocity = new Point(-state.ball.velocity.x, state.ball.velocity.y)
+            state.ball.velocity = new Point(-state.ball.velocity.x, state.ball.velocity.y +  rand(-0.1,0.1))
             state.ball.bounds = state.ball.bounds.add(state.ball.velocity)
             play_bounce()
+            state.player.fade()
             return
         }
     }
@@ -225,24 +289,27 @@ function check_collisions() {
     if(new_bounds.right() >= state.computer.bounds.left() && new_bounds.left() < state.computer.bounds.right()) {
         if(new_bounds.bottom() > state.computer.bounds.top() &&
             new_bounds.top() < state.computer.bounds.bottom()) {
-            log("hit")
-            state.ball.velocity = new Point(-state.ball.velocity.x, state.ball.velocity.y)
+            state.ball.velocity = new Point(-state.ball.velocity.x, state.ball.velocity.y + rand(-0.1,0.1))
             state.ball.bounds = state.ball.bounds.add(state.ball.velocity)
             play_bounce()
             return
         }
     }
 
-    if(new_bounds.bottom() > canvas.height) {
+    if(new_bounds.bottom() > state.bot_border.bounds.top()) {
         state.ball.velocity = new Point(state.ball.velocity.x, -state.ball.velocity.y)
         state.ball.bounds = state.ball.bounds.add(state.ball.velocity)
         play_bounce()
+        state.bot_border.fade()
         return
     }
-    if(new_bounds.top() < 0) {
+
+    //top border
+    if(new_bounds.top() < state.top_border.bounds.bottom()) {
         state.ball.velocity = new Point(state.ball.velocity.x, -state.ball.velocity.y)
         state.ball.bounds = state.ball.bounds.add(state.ball.velocity)
         play_bounce()
+        state.top_border.fade()
         return
     }
 
@@ -281,10 +348,12 @@ function move_computer() {
 }
 
 function game_loop() {
-    check_keyboard()
-    check_collisions()
-    move_computer()
-    check_for_death()
+    if(state.playing) {
+        check_keyboard()
+        check_collisions()
+        move_computer()
+        check_for_death()
+    }
     let ctx:CanvasRenderingContext2D = canvas.getContext('2d')
     draw_screen(ctx)
     requestAnimationFrame(game_loop)
